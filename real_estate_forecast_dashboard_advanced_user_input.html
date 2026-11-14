@@ -263,14 +263,14 @@ select { min-width:min(100%,430px); }
 
 const definitions = [
   {id:"residency", label:"Residency Months", value:360, min:12, max:600, step:12, type:"int", group:"general"},
-  {id:"takeHome", label:"Initial Take-Home Pay ($/mo)", value:5215, min:2000, max:20000, step:100, type:"money", group:"general"},
+  {id:"takeHome", label:"Initial Take-Home Pay ($/mo)", value:5000, min:2000, max:20000, step:100, type:"money", group:"general"},
   {id:"raise", label:"Annual Raise", value:0.02, min:0, max:0.10, step:0.005, type:"pct", group:"general"},
-  {id:"living", label:"Monthly Living Expenses ($)", value:1500, min:500, max:10000, step:100, type:"money", group:"general"},
+  {id:"living", label:"Monthly Living Expenses ($)", value:2000, min:500, max:10000, step:100, type:"money", group:"general"},
   {id:"livingInflation", label:"Living Expenses Inflation", value:0.025, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"general"},
-  {id:"cash", label:"Initial Cash Reserves ($)", value:120000, min:10000, max:500000, step:5000, type:"money", group:"general"},
+  {id:"cash", label:"Initial Cash Reserves ($)", value:200000, min:10000, max:500000, step:5000, type:"money", group:"general"},
   {id:"startDate", label:"Forecast Start Date", value:"2027-01-01", type:"date", advanced:true, group:"general"},
 
-  {id:"price", label:"Purchase Price ($)", value:395000, min:100000, max:1000000, step:10000, type:"money", group:"home"},
+  {id:"price", label:"Purchase Price ($)", value:400000, min:100000, max:1000000, step:10000, type:"money", group:"home"},
   {id:"down", label:"Down Payment ($)", value:60000, min:0, max:300000, step:5000, type:"money", group:"home"},
   {id:"closingCosts", label:"Closing Costs ($)", value:14000, min:0, max:50000, step:500, type:"money", advanced:true, group:"home"},
   {id:"rate", label:"Mortgage Interest Rate", value:0.070, min:0.02, max:0.12, step:0.001, type:"pct4", group:"home"},
@@ -287,9 +287,9 @@ const definitions = [
   {id:"sellingCostPct", label:"Selling Costs", value:0.06, min:0, max:0.12, step:0.005, type:"pct", advanced:true, group:"home"},
 
   {id:"hysa", label:"Initial HYSA Balance ($)", value:60000, min:0, max:300000, step:5000, type:"money", group:"rent"},
-  {id:"rent", label:"Initial Monthly Rent ($)", value:2450, min:500, max:6000, step:100, type:"money", group:"rent"},
+  {id:"rent", label:"Initial Monthly Rent ($)", value:2500, min:500, max:6000, step:100, type:"money", group:"rent"},
   {id:"rentInflation", label:"Rent Inflation", value:0.04, min:0, max:0.10, step:0.005, type:"pct", group:"rent"},
-  {id:"rentersInsurance", label:"Annual Renters Insurance ($)", value:135, min:0, max:2000, step:25, type:"money", advanced:true, group:"rent"},
+  {id:"rentersInsurance", label:"Annual Renters Insurance ($)", value:130, min:0, max:2000, step:25, type:"money", advanced:true, group:"rent"},
   {id:"rentersInsuranceInflation", label:"Renters Insurance Inflation", value:0.02, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"rent"},
   {id:"apy", label:"HYSA APY", value:0.045, min:0, max:0.10, step:0.005, type:"pct", group:"rent"},
   {id:"incomeTaxRate", label:"Tax Rate on HYSA Interest", value:0.22, min:0, max:0.50, step:0.01, type:"pct", advanced:true, group:"rent"},
