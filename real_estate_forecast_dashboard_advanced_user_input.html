@@ -375,16 +375,15 @@ function buildControls(group, targetId, advanced = false) {
               aria-label="${d.label} slider"
             >
 
-            <input
-              id="${d.id}"
-              type="number"
-              min="${d.min}"
-              max="${d.max}"
-              step="${d.step}"
-              value="${d.value}"
-              aria-label="${d.label} numerical value"
-            >
-
+			<input
+			  id="${d.id}"
+			  type="number"
+			  min="${d.min}"
+			  max="${d.max}"
+			  step="any"
+			  value="${d.value}"
+			  aria-label="${d.label} numerical value"
+			>
           </div>
         `;
 
@@ -420,46 +419,47 @@ function buildControls(group, targetId, advanced = false) {
        * Clamp and synchronize when editing is finished.
        */
 
-      function synchronizeNumber() {
+		function synchronizeNumber() {
 
-        let value = Number(numberInput.value);
+		  let value = Number(numberInput.value);
 
-        if (numberInput.value.trim() === "" || !Number.isFinite(value)) {
-          numberInput.value = slider.value;
-          return;
-        }
+		  if (numberInput.value.trim() === "" || !Number.isFinite(value)) {
+			numberInput.value = slider.value;
+			return;
+		  }
 
-        value = Math.min(d.max, Math.max(d.min, value));
+		  // Clamp to permitted minimum and maximum.
+		  // Preserve custom values without rounding to slider intervals.
+		  value = Math.min(d.max, Math.max(d.min, value));
 
-        // Align the value with the defined increment.
-        value = d.min + Math.round((value - d.min) / d.step) * d.step;
+		  // Avoid floating-point artifacts.
+		  value = Number(value.toFixed(10));
 
-        // Avoid floating-point artifacts.
-        value = Number(value.toFixed(10));
+		  /*
+		   * Special case:
+		   * Down payment cannot equal or exceed purchase price.
+		   */
 
-        value = Math.min(d.max, Math.max(d.min, value));
+		  if (d.id === "down") {
 
-        /*
-         * Special case:
-         * Down payment cannot equal or exceed purchase price.
-         */
+			const price = Number(document.getElementById("price").value);
 
-        if (d.id === "down") {
+			if (value >= price) {
+			  value = Math.min(d.max, price - 1);
+			}
 
-          const price = Number(document.getElementById("price").value);
+		  }
 
-          if (value >= price) {
-            value = Math.min(d.max, price - 1);
-          }
+		  // Preserve the exact manually entered value.
+		  numberInput.value = value;
 
-        }
+		  // Slider snaps to its nearest permitted interval.
+		  // This does not overwrite the numerical input.
+		  slider.value = value;
 
-        numberInput.value = value;
-        slider.value = value;
+		  render();
 
-        render();
-
-      }
+		}
 
       numberInput.addEventListener("change", synchronizeNumber);
 
