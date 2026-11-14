@@ -176,6 +176,14 @@ select { min-width:min(100%,430px); }
     </div>
 
     <div class="field">
+      <label for="dollarMode">Dollar display</label>
+      <select id="dollarMode">
+        <option value="nominal">Nominal dollars</option>
+        <option value="real">Real dollars (today's purchasing power)</option>
+      </select>
+    </div>
+
+    <div class="field">
       <label><input id="autoScale" type="checkbox" checked> Auto-scale Y-axis</label>
     </div>
 
@@ -250,6 +258,7 @@ select { min-width:min(100%,430px); }
   <div id="chart"></div>
   <div class="note" id="forecastNote">
     Figures are projections, not guarantees. Annual income increases and expense inflation are applied at the beginning of each forecast year after Year 1.
+    In real-dollar mode, plotted dollar amounts are adjusted using the General Inflation assumption and shown in forecast-start-year purchasing power. The underlying forecast calculations and percentage ratios are unchanged.
   </div>
 </section>
 
@@ -265,6 +274,7 @@ select { min-width:min(100%,430px); }
 const definitions = [
   {id:"residency", label:"Residency Months", value:360, min:12, max:600, step:12, type:"int", group:"general"},
   {id:"takeHome", label:"Initial Take-Home Pay ($/mo)", value:5000, min:2000, max:20000, step:100, type:"money", group:"general"},
+  {id:"generalInflation", label:"General Inflation (Real-Dollar Adjustment)", value:0.025, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"general"},
   {id:"raise", label:"Annual Raise", value:0.02, min:0, max:0.10, step:0.005, type:"pct", group:"general"},
   {id:"living", label:"Monthly Living Expenses ($)", value:2000, min:500, max:10000, step:100, type:"money", group:"general"},
   {id:"livingInflation", label:"Living Expenses Inflation", value:0.025, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"general"},
@@ -716,10 +726,30 @@ const componentDefs=[
 ];
 
 
+function displayAmount(value, row) {
+  const mode = document.getElementById("dollarMode").value;
+  if (mode !== "real") return value;
+
+  // Keep all months in Year 1 in base-year dollars; deflate each later
+  // forecast year by the cumulative general-inflation assumption.
+  const inflation = val("generalInflation");
+  const deflator = Math.pow(1 + inflation, row.Year - 1);
+  return value / deflator;
+}
+
+function displaySeries(rows, key) {
+  // Ratios are already dimensionless: do not apply a dollar deflator.
+  if (key === "Housing_Cost_To_Income_Pct") {
+    return rows.map(row => row[key]);
+  }
+
+  return rows.map(row => displayAmount(row[key], row));
+}
+
 function trace(rows,key,name,dash="solid") {
   return {
     x:rows.map(r=>r.date),
-    y:rows.map(r=>r[key]),
+    y:displaySeries(rows,key),
     type:"scatter",
     mode:"lines",
     name,
@@ -786,7 +816,7 @@ function render() {
     componentDefs.forEach(([key,label])=>{
       data.push({
         x:home.map(r=>r.date),
-        y:home.map(r=>r[key]),
+        y:displaySeries(home,key),
         type:"scatter",
         mode:"lines",
         stackgroup:"one",
@@ -821,9 +851,13 @@ function render() {
   }
 
   const isPct=!!p.pct;
+  const realMode = document.getElementById("dollarMode").value === "real";
+  const dollarLabel = realMode
+    ? "Real dollars (forecast-start-year purchasing power)"
+    : "Nominal dollars";
 
   const layout={
-    title:{text:p.title,font:{size:17}},
+    title:{text:p.title + (isPct ? "" : (realMode ? " — Real Dollars" : " — Nominal Dollars")),font:{size:17}},
     autosize:true,
     height:500,
     margin:{l:78,r:25,t:65,b:65},
@@ -838,7 +872,7 @@ function render() {
       tickformat:"%b<br>%Y"
     },
     yaxis:{
-      title:p.y,
+      title:isPct ? p.y : p.y + "<br>(" + dollarLabel + ")",
       gridcolor:"#e8edf3",
       tickformat:isPct?".0f":"$,.0f",
       ticksuffix:isPct?"%":""
@@ -860,6 +894,7 @@ function render() {
  */
 
 document.getElementById("plotSelect").addEventListener("change",render);
+document.getElementById("dollarMode").addEventListener("change",render);
 document.getElementById("autoScale").addEventListener("change",render);
 document.getElementById("yMin").addEventListener("change",render);
 document.getElementById("yMax").addEventListener("change",render);
