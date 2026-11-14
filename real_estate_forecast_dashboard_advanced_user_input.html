@@ -1,0 +1,870 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Real Estate Forecast Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+<style>
+:root {
+  --ink:#243247; --muted:#66758a; --line:#d9e0e8; --panel:#f7f9fc;
+  --blue:#2864a5; --green:#26936b; --accent:#e9f1fb;
+}
+* { box-sizing:border-box; }
+
+body {
+    background:
+        linear-gradient(
+            rgba(15, 25, 40, 0.65),
+            rgba(15, 25, 40, 0.65)
+        ),
+      
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+main { max-width:1600px; margin:0 auto; }
+header { margin-bottom:20px; }
+h1 { margin:0 0 5px; font-size:1.8rem; }
+.subtitle { color:var(--muted); }
+
+.panel {
+  background:white; border:1px solid var(--line); border-radius:12px;
+  padding:18px; box-shadow:0 2px 8px #2432470a;
+}
+.plot-controls { display:flex; flex-wrap:wrap; gap:14px; align-items:end; }
+.field { display:flex; flex-direction:column; gap:5px; }
+label { font-weight:600; font-size:.9rem; }
+
+select, input[type=number], input[type=date] {
+  border:1px solid #c8d2df; border-radius:7px;
+  padding:9px 10px; color:var(--ink); background:white; font:inherit;
+}
+select { min-width:min(100%,430px); }
+.axis-fields { display:flex; gap:8px; flex-wrap:wrap; }
+.axis-fields input { width:130px; }
+.axis-fields input:disabled { background:#f0f2f5; color:#9aa4b2; }
+
+.input-grid {
+  display:grid; grid-template-columns:repeat(3,minmax(260px,1fr));
+  gap:14px; margin-top:16px;
+}
+.group {
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:10px; padding:14px;
+}
+
+.advanced-panel {
+  margin-top:16px; background:white; border:1px solid var(--line);
+  border-radius:12px; padding:0 18px; box-shadow:0 2px 8px #2432470a;
+}
+.advanced-panel summary {
+  cursor:pointer; list-style:none; padding:16px 0;
+  font-weight:700; color:var(--blue);
+}
+.advanced-panel summary::-webkit-details-marker { display:none; }
+.advanced-panel summary::after { content:"＋"; float:right; font-size:1.1rem; }
+.advanced-panel[open] summary::after { content:"−"; }
+
+.advanced-hint {
+  margin-left:8px; color:var(--muted); font-size:.82rem; font-weight:400;
+}
+.advanced-description { margin:0 0 4px; color:var(--muted); font-size:.9rem; }
+.advanced-grid { margin-top:12px; margin-bottom:18px; }
+
+.group h2 { font-size:1.05rem; margin:0 0 12px; }
+.control { margin:0 0 15px; }
+.control:last-child { margin-bottom:0; }
+
+.control-top {
+  display:flex; justify-content:space-between;
+  gap:10px; margin-bottom:5px; align-items:center;
+}
+.control-top label { font-weight:500; }
+
+.control-input-row {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.control-input-row input[type=range] {
+  flex:1;
+  min-width:0;
+  width:100%;
+  accent-color:var(--blue);
+  cursor:pointer;
+}
+
+.control-input-row input[type=number] {
+  width:125px;
+  min-width:0;
+  padding:7px 8px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+.control-input-row input[type=date] {
+  width:100%;
+}
+
+.control-input-row input:focus {
+  outline:2px solid #9bbce1;
+  outline-offset:1px;
+}
+
+.value {
+  color:var(--blue);
+  font-variant-numeric:tabular-nums;
+  font-weight:650;
+  white-space:nowrap;
+}
+
+.chart-panel { margin-top:16px; min-height:520px; }
+#chart { width:100%; height:500px; }
+
+.error {
+  color:#a32727; background:#fff0f0; border:1px solid #f1caca;
+  border-radius:8px; padding:10px 12px; margin-top:12px; display:none;
+}
+.note { color:var(--muted); font-size:.83rem; margin-top:12px; }
+
+@media (max-width:1100px) {
+  .input-grid { grid-template-columns:repeat(2,minmax(240px,1fr)); }
+}
+@media (max-width:650px) {
+  body { padding:12px; }
+  .input-grid { grid-template-columns:1fr; }
+  .chart-panel { padding:8px; }
+  #chart { height:430px; }
+  .control-input-row input[type=number] { width:110px; }
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<header>
+  <h1>🏠 Modular Real Estate Forecast Dashboard</h1>
+  <div class="subtitle">
+    Compare projected homeownership and renting outcomes by changing the assumptions below.
+  </div>
+</header>
+
+<section class="panel">
+  <div class="plot-controls">
+
+    <div class="field">
+      <label for="plotSelect">Select graph</label>
+      <select id="plotSelect">
+        <option value="1">1. Total Liquid Cash: Owning vs Renting</option>
+        <option value="2">2. Monthly Net Cash Flow</option>
+        <option value="3">3. Monthly Housing Costs vs Take-Home Pay</option>
+        <option value="4">4. Home Value vs Mortgage Balance</option>
+        <option value="5">5. Home Equity and Capital Invested</option>
+        <option value="6">6. Net Worth: Homeownership vs Renting</option>
+        <option value="7">7. Housing Cost-to-Income Ratio</option>
+        <option value="8">8. Accumulated Principal and Interest</option>
+        <option value="9">9. Monthly Housing Cost Composition (Stacked)</option>
+        <option value="10">10. Individual Housing Cost Components</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label><input id="autoScale" type="checkbox" checked> Auto-scale Y-axis</label>
+    </div>
+
+    <div class="field">
+      <label for="yMin">Custom Y-min</label>
+      <input id="yMin" type="number" value="0" step="any" disabled>
+    </div>
+
+    <div class="field">
+      <label for="yMax">Custom Y-max</label>
+      <input id="yMax" type="number" value="500000" step="any" disabled>
+    </div>
+
+  </div>
+
+  <div id="error" class="error"></div>
+</section>
+
+<section class="input-grid">
+
+  <div class="group">
+    <h2>📈 General &amp; Income</h2>
+    <div id="generalControls"></div>
+  </div>
+
+  <div class="group">
+    <h2>🏠 Homeownership</h2>
+    <div id="homeControls"></div>
+  </div>
+
+  <div class="group">
+    <h2>🏢 Renting &amp; HYSA</h2>
+    <div id="rentControls"></div>
+  </div>
+
+</section>
+
+<details class="advanced-panel">
+
+  <summary>
+    ⚙️ Advanced assumptions
+    <span class="advanced-hint">Optional settings · collapsed by default</span>
+  </summary>
+
+  <p class="advanced-description">
+    These assumptions are available for users who want finer control over the forecast.
+    The default values are already included in the calculations, even when this section is closed.
+  </p>
+
+  <section class="input-grid advanced-grid">
+
+    <div class="group">
+      <h2>📈 General &amp; Income</h2>
+      <div id="generalAdvancedControls"></div>
+    </div>
+
+    <div class="group">
+      <h2>🏠 Homeownership</h2>
+      <div id="homeAdvancedControls"></div>
+    </div>
+
+    <div class="group">
+      <h2>🏢 Renting &amp; HYSA</h2>
+      <div id="rentAdvancedControls"></div>
+    </div>
+
+  </section>
+
+</details>
+
+<section class="panel chart-panel">
+  <div id="chart"></div>
+  <div class="note" id="forecastNote">
+    Figures are projections, not guarantees. Annual income increases and expense inflation are applied at the beginning of each forecast year after Year 1.
+  </div>
+</section>
+
+</main>
+
+<script>
+"use strict";
+
+/*
+ * All user-adjustable financial assumptions are defined here.
+ */
+
+const definitions = [
+  {id:"residency", label:"Residency Months", value:360, min:12, max:600, step:12, type:"int", group:"general"},
+  {id:"takeHome", label:"Initial Take-Home Pay ($/mo)", value:5000, min:2000, max:20000, step:100, type:"money", group:"general"},
+  {id:"raise", label:"Annual Raise", value:0.02, min:0, max:0.10, step:0.005, type:"pct", group:"general"},
+  {id:"living", label:"Monthly Living Expenses ($)", value:2000, min:500, max:10000, step:100, type:"money", group:"general"},
+  {id:"livingInflation", label:"Living Expenses Inflation", value:0.025, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"general"},
+  {id:"cash", label:"Initial Cash Reserves ($)", value:200000, min:10000, max:500000, step:5000, type:"money", group:"general"},
+  {id:"startDate", label:"Forecast Start Date", value:"2027-01-01", type:"date", advanced:true, group:"general"},
+
+  {id:"price", label:"Purchase Price ($)", value:400000, min:100000, max:1000000, step:10000, type:"money", group:"home"},
+  {id:"down", label:"Down Payment ($)", value:60000, min:0, max:300000, step:5000, type:"money", group:"home"},
+  {id:"closingCosts", label:"Closing Costs ($)", value:14000, min:0, max:50000, step:500, type:"money", advanced:true, group:"home"},
+  {id:"rate", label:"Mortgage Interest Rate", value:0.070, min:0.02, max:0.12, step:0.001, type:"pct4", group:"home"},
+  {id:"loanTerm", label:"Loan Term (Years)", value:30, min:5, max:40, step:1, type:"int", advanced:true, group:"home"},
+  {id:"tax", label:"Annual Property Tax ($)", value:4876, min:500, max:20000, step:250, type:"money", group:"home"},
+  {id:"insurance", label:"Annual Homeowners Insurance ($)", value:1500, min:300, max:10000, step:100, type:"money", advanced:true, group:"home"},
+  {id:"hoa", label:"Monthly HOA ($)", value:160, min:0, max:1000, step:25, type:"money", group:"home"},
+  {id:"maintenancePct", label:"Annual Maintenance (% of Price)", value:0.01, min:0, max:0.05, step:0.0025, type:"pct", advanced:true, group:"home"},
+  {id:"appreciation", label:"Home Appreciation", value:0.01, min:-0.05, max:0.08, step:0.005, type:"pct", group:"home"},
+  {id:"taxInflation", label:"Property Tax Inflation", value:0.03, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"home"},
+  {id:"insuranceInflation", label:"Homeowners Insurance Inflation", value:0.04, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"home"},
+  {id:"hoaInflation", label:"HOA Inflation", value:0.02, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"home"},
+  {id:"maintenanceInflation", label:"Maintenance Inflation", value:0.03, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"home"},
+  {id:"sellingCostPct", label:"Selling Costs", value:0.06, min:0, max:0.12, step:0.005, type:"pct", advanced:true, group:"home"},
+
+  {id:"hysa", label:"Initial HYSA Balance ($)", value:60000, min:0, max:300000, step:5000, type:"money", group:"rent"},
+  {id:"rent", label:"Initial Monthly Rent ($)", value:2500, min:500, max:6000, step:100, type:"money", group:"rent"},
+  {id:"rentInflation", label:"Rent Inflation", value:0.04, min:0, max:0.10, step:0.005, type:"pct", group:"rent"},
+  {id:"rentersInsurance", label:"Annual Renters Insurance ($)", value:130, min:0, max:2000, step:25, type:"money", advanced:true, group:"rent"},
+  {id:"rentersInsuranceInflation", label:"Renters Insurance Inflation", value:0.02, min:0, max:0.10, step:0.005, type:"pct", advanced:true, group:"rent"},
+  {id:"apy", label:"HYSA APY", value:0.045, min:0, max:0.10, step:0.005, type:"pct", group:"rent"},
+  {id:"incomeTaxRate", label:"Tax Rate on HYSA Interest", value:0.22, min:0, max:0.50, step:0.01, type:"pct", advanced:true, group:"rent"},
+  {id:"cashFlowAllocationPct", label:"HYSA Cash Flow Allocation", value:0.0, min:0, max:1, step:0.05, type:"pct", advanced:true, group:"rent"}
+];
+
+const money0 = v => "$" + Math.round(v).toLocaleString("en-US");
+
+const formatValue = (v,t) => {
+  if (t === "money") return money0(v);
+  if (t === "pct") return (Number(v)*100).toFixed(2) + "%";
+  if (t === "pct4") return (Number(v)*100).toFixed(3) + "%";
+  if (t === "date") return new Date(v + "T00:00:00").toLocaleDateString("en-US",{month:"short",year:"numeric"});
+  return Math.round(v).toLocaleString("en-US");
+};
+
+/*
+ * CONTROL GENERATOR
+ *
+ * Each numeric assumption now has:
+ * 1. A range slider
+ * 2. A numerical input
+ *
+ * Both controls synchronize with one another.
+ */
+
+function buildControls(group, targetId, advanced = false) {
+
+  const target = document.getElementById(targetId);
+
+  definitions
+    .filter(d => d.group === group && Boolean(d.advanced) === advanced)
+    .forEach(d => {
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "control";
+
+      const isDate = d.type === "date";
+
+      if (isDate) {
+
+        wrapper.innerHTML = `
+          <div class="control-top">
+            <label for="${d.id}">${d.label}</label>
+          </div>
+          <div class="control-input-row">
+            <input id="${d.id}" type="date" value="${d.value}">
+          </div>
+        `;
+
+      } else {
+
+        wrapper.innerHTML = `
+          <div class="control-top">
+            <label for="${d.id}">${d.label}</label>
+          </div>
+
+          <div class="control-input-row">
+
+            <input
+              id="${d.id}Slider"
+              type="range"
+              min="${d.min}"
+              max="${d.max}"
+              step="${d.step}"
+              value="${d.value}"
+              aria-label="${d.label} slider"
+            >
+
+            <input
+              id="${d.id}"
+              type="number"
+              min="${d.min}"
+              max="${d.max}"
+              step="${d.step}"
+              value="${d.value}"
+              aria-label="${d.label} numerical value"
+            >
+
+          </div>
+        `;
+
+      }
+
+      target.appendChild(wrapper);
+
+      const numberInput = document.getElementById(d.id);
+
+      if (isDate) {
+        numberInput.addEventListener("change", render);
+        return;
+      }
+
+      const slider = document.getElementById(d.id + "Slider");
+
+      /*
+       * Slider -> Numerical input
+       */
+
+      slider.addEventListener("input", () => {
+
+        numberInput.value = slider.value;
+
+        render();
+
+      });
+
+      /*
+       * Numerical input -> Slider
+       *
+       * While typing, allow intermediate values.
+       * Clamp and synchronize when editing is finished.
+       */
+
+      function synchronizeNumber() {
+
+        let value = Number(numberInput.value);
+
+        if (numberInput.value.trim() === "" || !Number.isFinite(value)) {
+          numberInput.value = slider.value;
+          return;
+        }
+
+        value = Math.min(d.max, Math.max(d.min, value));
+
+        // Align the value with the defined increment.
+        value = d.min + Math.round((value - d.min) / d.step) * d.step;
+
+        // Avoid floating-point artifacts.
+        value = Number(value.toFixed(10));
+
+        value = Math.min(d.max, Math.max(d.min, value));
+
+        /*
+         * Special case:
+         * Down payment cannot equal or exceed purchase price.
+         */
+
+        if (d.id === "down") {
+
+          const price = Number(document.getElementById("price").value);
+
+          if (value >= price) {
+            value = Math.min(d.max, price - 1);
+          }
+
+        }
+
+        numberInput.value = value;
+        slider.value = value;
+
+        render();
+
+      }
+
+      numberInput.addEventListener("change", synchronizeNumber);
+
+      numberInput.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          numberInput.blur();
+        }
+      });
+
+      numberInput.addEventListener("blur", synchronizeNumber);
+
+    });
+
+}
+
+/*
+ * Build all controls.
+ */
+
+buildControls("general","generalControls");
+buildControls("home","homeControls");
+buildControls("rent","rentControls");
+
+buildControls("general","generalAdvancedControls",true);
+buildControls("home","homeAdvancedControls",true);
+buildControls("rent","rentAdvancedControls",true);
+
+
+/*
+ * Keep down-payment maximum synchronized with purchase price.
+ */
+
+function synchronizeDownPayment() {
+
+  const price = val("price");
+  const down = document.getElementById("down");
+  const downSlider = document.getElementById("downSlider");
+
+  down.max = price;
+  downSlider.max = price;
+
+  if (Number(down.value) >= price) {
+
+    const adjusted = Math.max(0,price - 1);
+
+    down.value = adjusted;
+    downSlider.value = adjusted;
+
+  }
+
+}
+
+
+/*
+ * Retrieve current values.
+ */
+
+function val(id) {
+  return Number(document.getElementById(id).value);
+}
+
+const round2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+
+const dateForMonth = month => {
+  const start = document.getElementById("startDate").value;
+  const [year, monthIndex] = start.split("-").map(Number);
+  const d = new Date(Date.UTC(year, monthIndex - 1 + month - 1, 1));
+  return d.toISOString().slice(0,10);
+};
+
+
+/*
+ * FORECAST CALCULATIONS
+ * Original calculation logic retained.
+ */
+
+function forecastHome() {
+
+  const residency = val("residency"), price = val("price"), down = val("down");
+  const rate = val("rate"), loan = price - down, monthlyRate = rate / 12;
+  const termPayments = val("loanTerm") * 12;
+  const closingCosts = val("closingCosts");
+
+  const payment = monthlyRate > 0
+    ? loan * (monthlyRate * Math.pow(1+monthlyRate,termPayments)) /
+      (Math.pow(1+monthlyRate,termPayments)-1)
+    : loan / termPayments;
+
+  let balance = loan, income = val("takeHome"), living = val("living");
+  let tax = val("tax")/12, insurance = val("insurance")/12, hoa = val("hoa");
+  let maintenance = price*val("maintenancePct")/12;
+  let cash = val("cash") - down - closingCosts;
+
+  let principalTotal = 0, interestTotal = 0, capital = down;
+
+  const sellingCostPct = val("sellingCostPct");
+  const rows = [];
+
+  for (let month=1; month<=residency; month++) {
+
+    const yearIndex = Math.floor((month-1)/12);
+
+    if (month>1 && (month-1)%12===0) {
+      income *= 1+val("raise");
+      living *= 1+val("livingInflation");
+      tax *= 1+val("taxInflation");
+      insurance *= 1+val("insuranceInflation");
+      hoa *= 1+val("hoaInflation");
+      maintenance *= 1+val("maintenanceInflation");
+    }
+
+    let interest=0, principal=0;
+
+    if (balance>0 && month<=termPayments) {
+      interest = balance*monthlyRate;
+      principal = Math.min(balance, payment-interest);
+      balance = Math.max(0,balance-principal);
+    } else balance=0;
+
+    principalTotal += principal;
+    interestTotal += interest;
+    capital += principal;
+
+    const pmi = (loan/price)>0.80 && balance>price*0.80 ? loan*0.005/12 : 0;
+
+    const homeValue = Math.max(0,price*Math.pow(1+val("appreciation"),month/12));
+    const equity = homeValue-balance;
+    const netEquity = homeValue*(1-sellingCostPct)-balance;
+
+    const housing = principal+interest+tax+insurance+hoa+maintenance+pmi;
+    const ratio = income>0 ? housing/income*100 : NaN;
+    const netFlow = income-(housing+living);
+
+    cash += netFlow;
+
+    rows.push({
+      date:dateForMonth(month), Month:month, Year:yearIndex+1,
+      Take_Home_Pay:round2(income), Principal:round2(principal), Interest:round2(interest),
+      Property_Tax:round2(tax), Insurance:round2(insurance), HOA:round2(hoa),
+      Maintenance:round2(maintenance), PMI:round2(pmi),
+      Total_Housing_Cost:round2(housing), Living_Expenses:round2(living),
+      Total_Monthly_Outflow:round2(housing+living), Net_Cash_Flow:round2(netFlow),
+      Ending_Cash_Reserves:round2(cash), Remaining_Loan_Balance:round2(balance),
+      Home_Value:round2(homeValue), Home_Equity:round2(equity),
+      Estimated_Selling_Costs:round2(homeValue*sellingCostPct),
+      Net_Equity_After_Selling_Costs:round2(netEquity),
+      Accumulated_Principal:round2(principalTotal),
+      Cumulative_Capital_Invested:round2(capital),
+      Net_Worth:round2(cash+equity),
+      Net_Worth_After_Selling_Costs:round2(cash+netEquity),
+      Property_Appreciation_Gain:round2(equity-capital),
+      Housing_Cost_To_Income_Pct:round2(ratio),
+      Accumulated_Interest:round2(interestTotal)
+    });
+
+  }
+
+  return rows;
+}
+
+
+function forecastRent() {
+
+  const residency=val("residency");
+  let income=val("takeHome"), living=val("living"), rent=val("rent");
+  let rentersInsurance=val("rentersInsurance")/12, hysa=val("hysa");
+
+  const otherCash=val("cash")-val("hysa");
+  let accumulatedCashFlow=0;
+
+  const rows=[];
+
+  for (let month=1; month<=residency; month++) {
+
+    const yearIndex=Math.floor((month-1)/12);
+
+    if (month>1 && (month-1)%12===0) {
+      income*=1+val("raise");
+      living*=1+val("livingInflation");
+      rent*=1+val("rentInflation");
+      rentersInsurance*=1+val("rentersInsuranceInflation");
+    }
+
+    const monthlyReturn=Math.pow(1+val("apy"),1/12)-1;
+    const interestEarned=hysa*monthlyReturn;
+    const netInterest=interestEarned*(1-val("incomeTaxRate"));
+
+    hysa+=netInterest;
+
+    const housing=rent+rentersInsurance;
+    const outflow=housing+living;
+    const ratio=income>0 ? housing/income*100 : NaN;
+    const netFlow=income-outflow;
+
+    const transfer=Math.max(netFlow,0)*val("cashFlowAllocationPct");
+
+    hysa+=transfer;
+
+    const remainingFlow=netFlow-transfer;
+
+    accumulatedCashFlow+=remainingFlow;
+
+    const totalCash=hysa+otherCash+accumulatedCashFlow;
+
+    rows.push({
+      date:dateForMonth(month), Month:month, Year:yearIndex+1,
+      Take_Home_Pay:round2(income), Monthly_Rent:round2(rent),
+      Total_Renting_Cost:round2(housing), Living_Expenses:round2(living),
+      Total_Monthly_Outflow:round2(outflow), Net_Cash_Flow:round2(netFlow),
+      Interest_Earned_Net:round2(netInterest), Ending_HYSA_Balance:round2(hysa),
+      Ending_Other_Cash:round2(otherCash), Total_Cash_Reserves:round2(totalCash),
+      Accumulated_Cash_Flow:round2(accumulatedCashFlow),
+      Housing_Cost_To_Income_Pct:round2(ratio),
+      HYSA_Cash_Flow_Transfer:round2(transfer), Remaining_Cash_Flow:round2(remainingFlow)
+    });
+
+  }
+
+  return rows;
+}
+
+
+/*
+ * GRAPH DEFINITIONS
+ */
+
+const plots = {
+
+  1:{title:"Total Liquid Cash: Owning vs Renting",y:"Total Cash Reserves ($)",series:[
+    ["Ending_Cash_Reserves","Homeownership"],["Total_Cash_Reserves","Renting","rent"]]},
+
+  2:{title:"Monthly Net Cash Flow",y:"Monthly Cash Flow ($)",zero:true,series:[
+    ["Net_Cash_Flow","Homeownership"],["Net_Cash_Flow","Renting","rent"]]},
+
+  3:{title:"Monthly Housing Costs vs Take-Home Pay",y:"Monthly Amount ($)",series:[
+    ["Total_Housing_Cost","Homeownership"],["Total_Renting_Cost","Renting","rent"],
+    ["Take_Home_Pay","Take-Home Pay","home","dash"]]},
+
+  4:{title:"Home Value vs Mortgage Balance",y:"Value ($)",series:[
+    ["Home_Value","Estimated Home Value"],["Remaining_Loan_Balance","Remaining Mortgage"]]},
+
+  5:{title:"Home Equity and Capital Invested",y:"Amount ($)",zero:true,series:[
+    ["Home_Equity","Home Equity Before Selling Costs"],
+    ["Net_Equity_After_Selling_Costs","Home Equity After Selling Costs"],
+    ["Cumulative_Capital_Invested","Cumulative Capital Invested","home","dash"]]},
+
+  6:{title:"Net Worth: Homeownership vs Renting",y:"Net Worth ($)",series:[
+    ["Net_Worth","Homeownership (Before Selling Costs)"],
+    ["Net_Worth_After_Selling_Costs","Homeownership (After Selling Costs)","home","dash"],
+    ["Total_Cash_Reserves","Renting","rent"]]},
+
+  7:{title:"Housing Cost-to-Income Ratio",y:"Housing Costs (% of Take-Home Pay)",pct:true,series:[
+    ["Housing_Cost_To_Income_Pct","Homeownership"],
+    ["Housing_Cost_To_Income_Pct","Renting","rent"]]},
+
+  8:{title:"Accumulated Principal and Interest",y:"Amount ($)",series:[
+    ["Accumulated_Principal","Cumulative Principal Paid","home","dash"],
+    ["Accumulated_Interest","Cumulative Interest Paid"]]},
+
+  9:{title:"Monthly Housing Cost Composition",y:"Monthly Housing Cost ($)",stack:true},
+
+  10:{title:"Individual Housing Cost Components",y:"Monthly Cost ($)",components:true}
+
+};
+
+const componentDefs=[
+  ["Principal","Principal"],["Interest","Interest"],["Property_Tax","Property Tax"],
+  ["Insurance","Insurance"],["HOA","HOA"],["Maintenance","Maintenance"],["PMI","PMI"]
+];
+
+
+function trace(rows,key,name,dash="solid") {
+  return {
+    x:rows.map(r=>r.date),
+    y:rows.map(r=>r[key]),
+    type:"scatter",
+    mode:"lines",
+    name,
+    xaxis:"x",
+    line:{width:2,dash}
+  };
+}
+
+
+/*
+ * RENDER GRAPH
+ */
+
+function render() {
+
+  const error=document.getElementById("error");
+
+  const auto=document.getElementById("autoScale").checked;
+
+  document.getElementById("yMin").disabled=auto;
+  document.getElementById("yMax").disabled=auto;
+
+  synchronizeDownPayment();
+
+  const price=val("price");
+  const down=val("down");
+  const hysa=val("hysa");
+  const cash=val("cash");
+
+  const ymin=Number(document.getElementById("yMin").value);
+  const ymax=Number(document.getElementById("yMax").value);
+
+  const errors=[];
+
+  if (down>=price)
+    errors.push("Down payment must be less than purchase price.");
+
+  if (hysa>cash)
+    errors.push("Initial HYSA balance cannot exceed initial cash reserves.");
+
+  if (!auto && !(ymin<ymax))
+    errors.push("Custom Y-min must be less than custom Y-max.");
+
+  if (!document.getElementById("startDate").value)
+    errors.push("Please select a forecast start date.");
+
+  if (errors.length) {
+    error.style.display="block";
+    error.innerHTML=errors.map(e=>"• "+e).join("<br>");
+    return;
+  }
+
+  error.style.display="none";
+
+  const home=forecastHome();
+  const rent=forecastRent();
+
+  const p=plots[document.getElementById("plotSelect").value];
+
+  let data=[];
+
+  if (p.stack) {
+
+    componentDefs.forEach(([key,label])=>{
+      data.push({
+        x:home.map(r=>r.date),
+        y:home.map(r=>r[key]),
+        type:"scatter",
+        mode:"lines",
+        stackgroup:"one",
+        name:label,
+        line:{width:0.5},
+        hovertemplate:"%{y:$,.0f}<extra>"+label+"</extra>"
+      });
+    });
+
+  } else if (p.components) {
+
+    componentDefs.forEach(([key,label])=>data.push(trace(home,key,label)));
+
+  } else {
+
+    p.series.forEach(s=>
+      data.push(trace(s[2]==="rent"?rent:home,s[0],s[1],s[3]||"solid"))
+    );
+
+    if (p.zero) {
+      data.push({
+        x:[home[0].date,home[home.length-1].date],
+        y:[0,0],
+        mode:"lines",
+        name:"Zero",
+        line:{color:"#555",dash:"dash",width:1},
+        hoverinfo:"skip",
+        showlegend:false
+      });
+    }
+
+  }
+
+  const isPct=!!p.pct;
+
+  const layout={
+    title:{text:p.title,font:{size:17}},
+    autosize:true,
+    height:500,
+    margin:{l:78,r:25,t:65,b:65},
+    paper_bgcolor:"#fff",
+    plot_bgcolor:"#fff",
+    hovermode:"x unified",
+    legend:{orientation:"h",y:-0.22},
+    xaxis:{
+      title:"Date",
+      type:"date",
+      gridcolor:"#e8edf3",
+      tickformat:"%b<br>%Y"
+    },
+    yaxis:{
+      title:p.y,
+      gridcolor:"#e8edf3",
+      tickformat:isPct?".0f":"$,.0f",
+      ticksuffix:isPct?"%":""
+    }
+  };
+
+  if (!auto) layout.yaxis.range=[ymin,ymax];
+
+  Plotly.react("chart",data,layout,{
+    responsive:true,
+    displaylogo:false
+  });
+
+}
+
+
+/*
+ * INITIALIZATION
+ */
+
+document.getElementById("plotSelect").addEventListener("change",render);
+document.getElementById("autoScale").addEventListener("change",render);
+document.getElementById("yMin").addEventListener("change",render);
+document.getElementById("yMax").addEventListener("change",render);
+
+render();
+
+</script>
+</body>
+</html>
