@@ -733,7 +733,8 @@ function displayAmount(value, row) {
   // Keep all months in Year 1 in base-year dollars; deflate each later
   // forecast year by the cumulative general-inflation assumption.
   const inflation = val("generalInflation");
-  const deflator = Math.pow(1 + inflation, row.Year - 1);
+  const elapsedYears = (row.Month - 1) / 12;
+  const deflator = Math.pow(1 + inflation, elapsedYears);
   return value / deflator;
 }
 
